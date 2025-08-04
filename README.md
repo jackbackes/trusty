@@ -1,22 +1,34 @@
-# 🚀 Trusty - AI-Powered Task Management for Developers
+# 🚀 Trusty - Task Management for Claude Code
 
 [![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
-[![Built with Claude](https://img.shields.io/badge/Built%20with-Claude-blueviolet?style=for-the-badge)](https://claude.ai)
+[![Built for Claude Code](https://img.shields.io/badge/Built%20for-Claude%20Code-blueviolet?style=for-the-badge)](https://claude.ai/code)
 
-**Trusty** is a modern command-line task manager designed specifically for developers. It leverages AI to help you decompose complex tasks, identify stale work, and maintain a clean, actionable task list.
+**Trusty** is a task manager designed specifically to work with [Claude Code](https://claude.ai/code), Anthropic's AI coding assistant. It leverages Claude's capabilities to help you decompose complex tasks, identify stale work, and maintain a clean, actionable task list.
+
+## 🦀 Why Rust?
+
+Trusty is built in Rust for several key reasons:
+
+- **Speed**: Instant startup and response times - no waiting for interpreters or VMs
+- **Reliability**: Rust's type system and memory safety prevent crashes and data corruption
+- **Single Binary**: Compiles to a single executable with no runtime dependencies
+- **Cross-Platform**: Works seamlessly on Linux, macOS, and Windows
+- **Low Resource Usage**: Minimal memory footprint, perfect for running alongside development tools
+- **Data Integrity**: Strong guarantees that your task data won't be corrupted
 
 ## ✨ Features
 
-### 🤖 AI-Powered Task Management
-- **Smart Decomposition**: Break down complex tasks into manageable subtasks using Claude AI
-- **Intelligent Pruning**: Automatically identify stale, completed, or irrelevant tasks
+### 🤖 AI-Powered Task Management with Claude
+- **Smart Decomposition**: Break down complex tasks into manageable subtasks using Claude
 - **Natural Language Input**: Create tasks from natural language descriptions
+- **Intelligent Suggestions**: Claude helps identify and organize your work
 
-### 📊 Advanced Task Tracking
+### 📊 Advanced Task Tracking (fully functional)
 - **Hierarchical Tasks**: Support for subtasks with automatic status aggregation
 - **Dependencies**: Track task dependencies and see what's blocking your progress
 - **Smart Filtering**: Hide old completed tasks by default, with flexible viewing options
 - **Priority & Complexity**: Track task priority and complexity levels
+- **Intelligent Pruning**: Rule-based identification of stale, completed, or irrelevant tasks (no AI required)
 
 ### 🎯 Developer-Focused Workflow
 - **Next Task Recommendation**: Get intelligent suggestions for what to work on next
@@ -38,14 +50,21 @@ cargo install --path .
 ```
 
 ### Prerequisites
+- [Claude Code](https://claude.ai/code) - Required for AI-powered features
 - Rust 1.70+ (install from [rustup.rs](https://rustup.rs/))
-- Claude CLI (optional, for AI features): `npm install -g @anthropic-ai/claude-code`
+
+Trusty is designed to be used alongside Claude Code. The AI features (task decomposition and natural language input) require Claude Code to be installed and available on your system.
 
 ## 🚀 Quick Start
 
 ```bash
 # Initialize trusty in your project
 trusty init
+
+# Install the Trusty agent for Claude Code
+trusty add-agent --scope local   # For current project only
+# OR
+trusty add-agent --scope global  # For all projects
 
 # Add your first task
 trusty add "Implement user authentication" --priority high
@@ -70,7 +89,7 @@ trusty complete 1
 ```bash
 # Add tasks
 trusty add "Task title" --description "Details" --priority high
-trusty add --prompt "Create a task for implementing OAuth2"  # AI-generated
+trusty add --prompt "Create a task for implementing OAuth2"  # Uses Claude to generate task
 
 # View tasks
 trusty list              # Active tasks only (default)
@@ -88,10 +107,10 @@ trusty complete 1 --all  # Complete task and all subtasks
 ### AI Features
 
 ```bash
-# Decompose complex tasks
-trusty decompose 1               # Break into subtasks
-trusty decompose 1 --preview     # Preview without creating
-trusty decompose 1 --count 6     # Create 6 subtasks
+# Decompose complex tasks (powered by Claude)
+trusty decompose 1               # Claude breaks task into subtasks
+trusty decompose 1 --preview     # Preview Claude's suggestions
+trusty decompose 1 --count 6     # Ask Claude for 6 subtasks
 
 # Prune stale tasks
 trusty prune                     # Interactive review
@@ -128,12 +147,41 @@ Trusty provides a beautiful, informative display of your tasks:
 ╰──────────────────────────────────────────────────────╯
 ```
 
+## 🤖 Claude Code Integration
+
+### Installing the Trusty Agent
+
+The Trusty agent enables Claude Code to understand and manage your project tasks:
+
+```bash
+# Install globally (recommended for personal use)
+trusty add-agent --scope global
+
+# Install locally (for team projects)
+trusty add-agent --scope local
+
+# Customize the agent
+trusty add-agent --scope global --name my-trusty --model opus --color blue
+```
+
+Once installed, you can ask Claude Code to:
+- "Show me my current tasks"
+- "What should I work on next?"
+- "Break down this complex feature into subtasks"
+- "Mark task #5 as complete"
+
 ## 🔧 Configuration
 
 Trusty stores tasks in `.trusty/tasks/` in your project directory. This makes it easy to:
 - Share task lists with your team via git
 - Keep tasks separate per project
 - Back up your task history
+
+### Agent Configuration
+
+- **Global agents**: Installed in `~/.claude/agents/`
+- **Local agents**: Installed in `.claude/agents/` in your project
+- Agents are configured with model selection (opus/sonnet) and custom colors
 
 ### Prune History
 
