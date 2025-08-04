@@ -251,4 +251,19 @@ pub enum Commands {
         #[arg(long)]
         details: bool,
     },
+    
+    /// Identify and prune stale or completed tasks
+    Prune {
+        /// Run in dry-run mode (show what would be pruned without making changes)
+        #[arg(long)]
+        dry_run: bool,
+        
+        /// Auto-apply suggested actions without confirmation
+        #[arg(long)]
+        auto: bool,
+        
+        /// Maximum number of tasks to suggest for pruning
+        #[arg(long, default_value = "10")]
+        limit: usize,
+    },
 }

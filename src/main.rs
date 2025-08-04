@@ -2,6 +2,7 @@ mod agent;
 mod cli;
 mod claude_integration;
 mod display;
+mod prune;
 pub mod storage;
 pub mod task;
 
@@ -440,6 +441,117 @@ fn handle_command(command: Commands, storage: TaskStorage) -> Result<()> {
             }
         }
         
+        Commands::Prune { dry_run, auto, limit } => {
+            let tasks = storage.list_all_tasks()?;
+            let tasks_dir = get_tasks_dir()?;
+            let mut analyzer = prune::PruneAnalyzer::new(tasks_dir)?;
+            
+            let suggestions = analyzer.analyze_tasks(&tasks);
+            let suggestions_to_show: Vec<_> = suggestions.into_iter().take(limit).collect();
+            
+            if suggestions_to_show.is_empty() {
+                println!("{} No tasks identified for pruning. Your task list is clean! 🎉", "✨".green());
+                return Ok(());
+            }
+            
+            println!("{}", format!("🧹 Found {} task(s) that may need attention:", suggestions_to_show.len()).yellow().bold());
+            println!("{}", "─".repeat(70));
+            
+            for (i, suggestion) in suggestions_to_show.iter().enumerate() {
+                println!("\n{}. {} #{} - {}", 
+                    i + 1, 
+                    match suggestion.action {
+                        prune::PruneAction::Complete => "Complete".green(),
+                        prune::PruneAction::Cancel => "Cancel".red(),
+                        prune::PruneAction::Skip => "Skip".yellow(),
+                    },
+                    suggestion.task.id,
+                    suggestion.task.title.cyan()
+                );
+                println!("   Status: {} | Priority: {} | Age: {} days", 
+                    suggestion.task.status,
+                    suggestion.task.priority,
+                    (chrono::Utc::now() - suggestion.task.created_at).num_days()
+                );
+                println!("   Reason: {}", suggestion.reason.italic());
+                println!("   Confidence: {}%", (suggestion.confidence * 100.0) as u32);
+            }
+            
+            if dry_run {
+                println!("\n{} This was a dry run. Use without --dry-run to apply changes.", "ℹ️".blue());
+                return Ok(());
+            }
+            
+            if !auto {
+                println!("\n{}", "─".repeat(70));
+                println!("What would you like to do?");
+                println!("  a) Apply all suggestions");
+                println!("  s) Select individually");
+                println!("  q) Quit without changes");
+                print!("\nYour choice (a/s/q): ");
+                io::stdout().flush()?;
+                
+                let mut input = String::new();
+                io::stdin().read_line(&mut input)?;
+                
+                match input.trim().to_lowercase().as_str() {
+                    "q" => {
+                        println!("{} Cancelled.", "✗".red());
+                        return Ok(());
+                    }
+                    "a" => {
+                        // Apply all suggestions
+                        for suggestion in &suggestions_to_show {
+                            apply_prune_action(&storage, &mut analyzer, suggestion)?;
+                        }
+                    }
+                    "s" | _ => {
+                        // Interactive selection
+                        for suggestion in &suggestions_to_show {
+                            println!("\n{}", "─".repeat(50));
+                            println!("Task #{}: {}", suggestion.task.id, suggestion.task.title.cyan());
+                            println!("Suggested action: {} ({})", 
+                                match suggestion.action {
+                                    prune::PruneAction::Complete => "Complete".green(),
+                                    prune::PruneAction::Cancel => "Cancel".red(),
+                                    prune::PruneAction::Skip => "Skip".yellow(),
+                                },
+                                suggestion.reason
+                            );
+                            print!("Apply this suggestion? (y/n/q): ");
+                            io::stdout().flush()?;
+                            
+                            let mut input = String::new();
+                            io::stdin().read_line(&mut input)?;
+                            
+                            match input.trim().to_lowercase().as_str() {
+                                "y" => {
+                                    apply_prune_action(&storage, &mut analyzer, suggestion)?;
+                                }
+                                "q" => {
+                                    println!("{} Stopped processing.", "✗".yellow());
+                                    break;
+                                }
+                                _ => {
+                                    println!("{} Skipped.", "→".blue());
+                                    analyzer.record_suggestion(suggestion.task.id, prune::PruneAction::Skip);
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Auto mode - apply all suggestions
+                for suggestion in &suggestions_to_show {
+                    apply_prune_action(&storage, &mut analyzer, suggestion)?;
+                }
+            }
+            
+            // Save prune history
+            analyzer.save_history()?;
+            println!("\n{} Pruning complete!", "✅".green());
+        }
+        
         Commands::Decompose { id, count, preview } => {
             let task = storage.load_task(id)?;
             
@@ -540,6 +652,29 @@ fn get_storage() -> Result<TaskStorage> {
 fn get_tasks_dir() -> Result<PathBuf> {
     let current_dir = std::env::current_dir()?;
     Ok(current_dir.join(".trusty").join("tasks"))
+}
+
+fn apply_prune_action(storage: &TaskStorage, analyzer: &mut prune::PruneAnalyzer, suggestion: &prune::PruneSuggestion) -> Result<()> {
+    match suggestion.action {
+        prune::PruneAction::Complete => {
+            let mut task = storage.load_task(suggestion.task.id)?;
+            task.set_status(TaskStatus::Done);
+            storage.save_task(&task)?;
+            println!("{} Completed task #{}: {}", "✅".green(), task.id, task.title);
+        }
+        prune::PruneAction::Cancel => {
+            let mut task = storage.load_task(suggestion.task.id)?;
+            task.set_status(TaskStatus::Cancelled);
+            storage.save_task(&task)?;
+            println!("{} Cancelled task #{}: {}", "❌".red(), task.id, task.title);
+        }
+        prune::PruneAction::Skip => {
+            println!("{} Skipped task #{}", "→".blue(), suggestion.task.id);
+        }
+    }
+    
+    analyzer.record_suggestion(suggestion.task.id, suggestion.action.clone());
+    Ok(())
 }
 
 fn parse_priority(s: &str) -> Result<Priority> {
