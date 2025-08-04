@@ -2,8 +2,8 @@ mod agent;
 mod cli;
 mod claude_integration;
 mod display;
-mod storage;
-mod task;
+pub mod storage;
+pub mod task;
 
 use anyhow::Result;
 use clap::Parser;
@@ -369,6 +369,40 @@ fn handle_command(command: Commands, storage: TaskStorage) -> Result<()> {
                 println!("{} Deleted {} task(s) with {} error(s).", "⚠️".yellow(), deleted, errors);
             } else {
                 println!("{} Successfully deleted {} task(s)!", "💥".bright_red(), deleted);
+            }
+        }
+        
+        Commands::Next { start, details } => {
+            let tasks = storage.list_all_tasks()?;
+            let next_task = display::TaskDisplay::get_next_task(&tasks);
+            
+            if let Some(task) = next_task {
+                println!("\n{}", format!("🔥 Next Task to Work On: #{} - {}", task.id, task.title).bright_cyan().bold());
+                
+                if details || start {
+                    display_task_details(task, Some(&tasks));
+                } else {
+                    println!("\nPriority: {}   Status: {}", task.priority, task.status);
+                    if !task.dependencies.is_empty() {
+                        println!("Dependencies: {:?}", task.dependencies.iter().collect::<Vec<_>>());
+                    }
+                    if !task.description.is_empty() {
+                        println!("\nDescription: {}", task.description);
+                    }
+                }
+                
+                if start {
+                    println!("\n{} Setting task to in-progress...", "⚡".yellow());
+                    let mut task_mut = storage.load_task(task.id)?;
+                    task_mut.set_status(TaskStatus::InProgress);
+                    storage.save_task(&task_mut)?;
+                    println!("{} Task #{} is now in progress!", "✅".green(), task.id);
+                }
+                
+                println!("\n{}: trusty set-status --id={} --status=in-progress", "Start working".bold(), task.id);
+                println!("{}: trusty show {}", "View details".bold(), task.id);
+            } else {
+                println!("{} No pending tasks found! Great job! 🎉", "✨".green());
             }
         }
         

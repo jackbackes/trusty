@@ -20,6 +20,10 @@ impl TaskDisplay {
             Self::display_recommended_task(next_task);
         }
     }
+    
+    pub fn get_next_task(tasks: &[Task]) -> Option<&Task> {
+        Self::get_next_recommended_task(tasks)
+    }
 
     fn calculate_stats(tasks: &[Task]) -> TaskStats {
         let mut stats = TaskStats::default();

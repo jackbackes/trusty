@@ -228,4 +228,15 @@ pub enum Commands {
         #[arg(long)]
         preview: bool,
     },
+    
+    /// Get the recommended next task to work on
+    Next {
+        /// Automatically set the task to in-progress
+        #[arg(long)]
+        start: bool,
+        
+        /// Show detailed task information
+        #[arg(long)]
+        details: bool,
+    },
 }
