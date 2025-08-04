@@ -7,17 +7,6 @@
 
 **Trusty** is a task manager designed specifically to work with [Claude Code](https://claude.ai/code), Anthropic's AI coding assistant. It leverages Claude's capabilities to help you decompose complex tasks, identify stale work, and maintain a clean, actionable task list.
 
-## 🦀 Why Rust?
-
-Trusty is built in Rust for several key reasons:
-
-- **Speed**: Instant startup and response times - no waiting for interpreters or VMs
-- **Reliability**: Rust's type system and memory safety prevent crashes and data corruption
-- **Single Binary**: Compiles to a single executable with no runtime dependencies
-- **Cross-Platform**: Works seamlessly on Linux, macOS, and Windows
-- **Low Resource Usage**: Minimal memory footprint, perfect for running alongside development tools
-- **Data Integrity**: Strong guarantees that your task data won't be corrupted
-
 ## ✨ Features
 
 ### 🤖 AI-Powered Task Management with Claude
@@ -49,6 +38,9 @@ cd trusty
 
 # Build and install
 cargo install --path .
+
+# get an interactive demonstration of all features with "trusty demo"!
+trusty demo 
 ```
 
 ### Prerequisites
@@ -145,7 +137,7 @@ Trusty provides a beautiful, informative display of your tasks:
 │   Project Dashboard                                  │
 │   Tasks Progress: ████████████░░░░░░░░░░░░░░░░░░     │
 │   43% Complete                                       │
-│   Done: 13  In Progress: 1  Pending: 16             │
+│   Done: 13  In Progress: 1  Pending: 16              │
 ╰──────────────────────────────────────────────────────╯
 ```
 
@@ -201,6 +193,17 @@ cargo test --all
 cargo test prune::tests
 ```
 
+## 🦀 Why Rust?
+
+Trusty is built in Rust for several key reasons:
+
+- **Speed**: Instant startup and response times - no waiting for interpreters or VMs
+- **Reliability**: Rust's type system and memory safety prevent crashes and data corruption
+- **Single Binary**: Compiles to a single executable with no runtime dependencies
+- **Cross-Platform**: Works seamlessly on Linux, macOS, and Windows
+- **Low Resource Usage**: Minimal memory footprint, perfect for running alongside development tools
+- **Data Integrity**: Strong guarantees that your task data won't be corrupted
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request. Make sure to:
@@ -219,7 +222,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Built with [Claude](https://claude.ai) by Anthropic
 - Inspired by modern task management needs of developers
 - Uses the excellent [clap](https://github.com/clap-rs/clap) CLI framework
-
----
-
-**Pro tip**: Use `trusty demo` to see an interactive demonstration of all features!
