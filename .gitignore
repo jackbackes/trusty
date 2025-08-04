@@ -1,1 +1,46 @@
-/target
+# Rust build artifacts
+/target/
+**/*.rs.bk
+*.pdb
+
+# Trusty task data (user-specific, should not be committed)
+.trusty/
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Claude-specific files (user configuration)
+.claude/
+CLAUDE.md
+
+# Backup files
+*.bak
+*.tmp
+*.orig
+
+# OS-specific files
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Debug files
+*.log
+*.pid
+
+# Test coverage
+tarpaulin-report.html
+cobertura.xml
+coverage/
+
+# Documentation build
+/docs/_build/
+/docs/_site/
+
+# Cargo.lock is included for binary crates
+# Uncomment if this becomes a library
+# Cargo.lock

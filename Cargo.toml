@@ -1,9 +1,14 @@
 [package]
 name = "trusty"
 version = "0.1.0"
-edition = "2024"
-authors = ["Your Name <you@example.com>"]
-description = "A task manager for Claude Code written in Rust"
+edition = "2021"
+authors = ["Trusty Contributors"]
+description = "AI-powered task management for developers - break down complex tasks, track dependencies, and maintain a clean backlog"
+repository = "https://github.com/yourusername/trusty"
+license = "MIT"
+readme = "README.md"
+keywords = ["task-management", "cli", "productivity", "ai", "developer-tools"]
+categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
