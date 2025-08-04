@@ -220,5 +220,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 🙏 Acknowledgments
 
 - Built with [Claude](https://claude.ai) by Anthropic
-- Inspired by modern task management needs of developers
+- Initial inspiration from [task-master-ai](https://www.task-master.dev) - a great task management tool that showed the potential of AI-assisted task organization
 - Uses the excellent [clap](https://github.com/clap-rs/clap) CLI framework
+- Inspired by modern task management needs of developers
+
+---
+
+**Pro tip**: Use `trusty demo` to see an interactive demonstration of all features!
