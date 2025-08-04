@@ -327,6 +327,30 @@ mod tests {
     }
 
     #[test]
+    fn test_completed_task_filtering() {
+        let mut task1 = Task::new(1, "Recent".to_string(), "".to_string(), Priority::High);
+        task1.set_status(TaskStatus::Done);
+        
+        let mut task2 = Task::new(2, "Old".to_string(), "".to_string(), Priority::High);
+        task2.set_status(TaskStatus::Done);
+        // Manually set completed_at to 10 minutes ago
+        task2.completed_at = Some(Utc::now() - chrono::Duration::minutes(10));
+        
+        let task3 = Task::new(3, "Pending".to_string(), "".to_string(), Priority::High);
+        
+        let cutoff_time = Utc::now() - chrono::Duration::minutes(5);
+        
+        // Task 1 should be kept (recently completed)
+        assert!(task1.completed_at.map_or(false, |completed| completed > cutoff_time));
+        
+        // Task 2 should be filtered out (old completion)
+        assert!(!task2.completed_at.map_or(false, |completed| completed > cutoff_time));
+        
+        // Task 3 should be kept (not completed)
+        assert!(matches!(task3.status, TaskStatus::Pending));
+    }
+
+    #[test]
     fn test_subtask_progress() {
         let mut parent = Task::new(1, "Parent".to_string(), "".to_string(), Priority::High);
         parent.add_subtask(2);

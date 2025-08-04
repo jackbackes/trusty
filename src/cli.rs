@@ -11,7 +11,19 @@ pub struct Cli {
 #[derive(Subcommand)]
 pub enum Commands {
     /// List all tasks
-    List,
+    List {
+        /// Show all tasks including completed ones
+        #[arg(long)]
+        all: bool,
+        
+        /// Show only completed tasks
+        #[arg(long, conflicts_with = "all")]
+        completed: bool,
+        
+        /// Show completed tasks from the last N minutes
+        #[arg(long, value_name = "MINUTES")]
+        recent: Option<u64>,
+    },
     
     /// Add a new task
     Add {

@@ -43,8 +43,30 @@ fn init_trusty() -> Result<()> {
 
 fn handle_command(command: Commands, storage: TaskStorage) -> Result<()> {
     match command {
-        Commands::List => {
-            let tasks = storage.list_all_tasks()?;
+        Commands::List { all, completed, recent } => {
+            let mut tasks = storage.list_all_tasks()?;
+            
+            // Filter tasks based on flags
+            if completed {
+                // Show only completed tasks
+                tasks.retain(|t| t.status == TaskStatus::Done);
+            } else if !all {
+                // Default behavior: hide completed tasks older than 5 minutes (or custom recent value)
+                let cutoff_minutes = recent.unwrap_or(5);
+                let cutoff_time = chrono::Utc::now() - chrono::Duration::minutes(cutoff_minutes as i64);
+                
+                tasks.retain(|t| {
+                    match t.status {
+                        TaskStatus::Done => {
+                            // Keep if completed within the cutoff time
+                            t.completed_at.map_or(false, |completed| completed > cutoff_time)
+                        }
+                        _ => true, // Keep all non-completed tasks
+                    }
+                });
+            }
+            // If --all is set, show everything (no filtering)
+            
             let project_path = get_tasks_dir()?.display().to_string();
             TaskDisplay::display_task_list(&tasks, &project_path);
         }
@@ -373,7 +395,19 @@ fn handle_command(command: Commands, storage: TaskStorage) -> Result<()> {
         }
         
         Commands::Next { start, details } => {
-            let tasks = storage.list_all_tasks()?;
+            let mut tasks = storage.list_all_tasks()?;
+            
+            // Apply default filtering (hide completed tasks older than 5 minutes)
+            let cutoff_time = chrono::Utc::now() - chrono::Duration::minutes(5);
+            tasks.retain(|t| {
+                match t.status {
+                    TaskStatus::Done => {
+                        t.completed_at.map_or(false, |completed| completed > cutoff_time)
+                    }
+                    _ => true,
+                }
+            });
+            
             let next_task = display::TaskDisplay::get_next_task(&tasks);
             
             if let Some(task) = next_task {
