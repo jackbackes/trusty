@@ -266,4 +266,69 @@ pub enum Commands {
         #[arg(long, default_value = "10")]
         limit: usize,
     },
+    
+    /// Import tasks from a file
+    Import {
+        /// Path to the file to import
+        file: String,
+        
+        /// Format of the import file (json, yaml, markdown)
+        #[arg(short, long, value_parser = ["json", "yaml", "markdown"])]
+        format: String,
+        
+        /// How to handle duplicate tasks (skip, overwrite, rename)
+        #[arg(long, default_value = "skip", value_parser = ["skip", "overwrite", "rename"])]
+        duplicates: String,
+        
+        /// Preview what would be imported without making changes
+        #[arg(long)]
+        preview: bool,
+    },
+    
+    /// Task-specific operations
+    Task {
+        #[command(subcommand)]
+        command: TaskCommands,
+    },
+    
+    /// Analyze tasks for business/user value and suggest focus areas
+    Focus {
+        /// Path to Product Requirements Document (PRD) for alignment analysis
+        #[arg(long)]
+        prd: Option<String>,
+        
+        /// Preview analysis without making changes
+        #[arg(long)]
+        preview: bool,
+        
+        /// Use Claude AI for deeper value analysis
+        #[arg(long)]
+        ai: bool,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum TaskCommands {
+    /// Get advice on what to do with a specific task
+    Advice {
+        /// Task ID to analyze
+        #[arg(long)]
+        id: u32,
+        
+        /// Show detailed analysis
+        #[arg(long)]
+        detailed: bool,
+        
+        /// Use Claude AI to analyze codebase and completed tasks
+        #[arg(long)]
+        ask_claude: bool,
+        
+        /// Interactive mode - select and execute suggested actions
+        #[arg(short, long)]
+        interactive: bool,
+        
+        /// Add suggested commands to shell history
+        #[arg(long)]
+        history: bool,
+    },
 }

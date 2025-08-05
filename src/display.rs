@@ -246,6 +246,7 @@ impl TaskDisplay {
 │                                                                                                                  │
 │  Start working: trusty set-status --id={} --status=in-progress                                               │
 │  View details: trusty show {}                                                                                │
+│  Get AI advice: trusty task advice --id={} --ask-claude                                                       │
 │                                                                                                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯",
             task.id,
@@ -254,6 +255,7 @@ impl TaskDisplay {
             task.status,
             if task.dependencies.is_empty() { "None".to_string() } else { format!("{:?}", task.dependencies.iter().collect::<Vec<_>>()) },
             Self::truncate(&task.description, 70),
+            task.id,
             task.id,
             task.id
         );

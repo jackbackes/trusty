@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1,
+    "title": "Setup CI/CD pipeline",
+    "description": "Configure GitHub Actions for automated testing and deployment",
+    "priority": "high",
+    "status": "pending",
+    "tags": ["devops", "infrastructure"],
+    "dependencies": []
+  },
+  {
+    "id": 2,
+    "title": "Write unit tests",
+    "description": "Add comprehensive test coverage for all modules",
+    "priority": "medium",
+    "status": "in-progress",
+    "tags": ["testing", "quality"],
+    "dependencies": []
+  },
+  {
+    "id": 3,
+    "title": "Deploy to production",
+    "description": "Release version 1.0",
+    "priority": "high",
+    "status": "pending",
+    "tags": ["release"],
+    "dependencies": [1, 2]
+  }
+]

@@ -1,7 +1,11 @@
+mod advice;
 mod agent;
 mod cli;
 mod claude_integration;
 mod display;
+mod focus;
+mod import;
+mod interactive;
 mod prune;
 pub mod storage;
 pub mod task;
@@ -15,7 +19,7 @@ use std::io::{self, Write};
 use std::process::Command;
 use std::env;
 
-use crate::cli::{Cli, Commands};
+use crate::cli::{Cli, Commands, TaskCommands};
 use crate::display::TaskDisplay;
 use crate::storage::TaskStorage;
 use crate::task::{Priority, Task, TaskStatus};
@@ -436,6 +440,8 @@ fn handle_command(command: Commands, storage: TaskStorage) -> Result<()> {
                 
                 println!("\n{}: trusty set-status --id={} --status=in-progress", "Start working".bold(), task.id);
                 println!("{}: trusty show {}", "View details".bold(), task.id);
+                println!("{}: trusty task advice --id={} --ask-claude", "Get AI advice".bold().bright_cyan(), task.id);
+                println!("{}: trusty task advice --id={} --ask-claude -i", "Interactive advice".bold().bright_magenta(), task.id);
             } else {
                 println!("{} No pending tasks found! Great job! 🎉", "✨".green());
             }
@@ -636,6 +642,186 @@ fn handle_command(command: Commands, storage: TaskStorage) -> Result<()> {
                 Err(e) => {
                     eprintln!("{} Failed to decompose task: {}", "❌".red(), e);
                     return Err(e);
+                }
+            }
+        }
+        
+        Commands::Import { file, format, duplicates, preview } => {
+            use std::path::Path;
+            use crate::import::{ImportFormat, DuplicateHandling, TaskImporter};
+            
+            let format = match format.to_lowercase().as_str() {
+                "json" => ImportFormat::Json,
+                "yaml" => ImportFormat::Yaml,
+                "markdown" => ImportFormat::Markdown,
+                _ => anyhow::bail!("Invalid format: {}. Use json, yaml, or markdown", format),
+            };
+            
+            let duplicate_handling = match duplicates.to_lowercase().as_str() {
+                "skip" => DuplicateHandling::Skip,
+                "overwrite" => DuplicateHandling::Overwrite,
+                "rename" => DuplicateHandling::Rename,
+                _ => anyhow::bail!("Invalid duplicate handling: {}. Use skip, overwrite, or rename", duplicates),
+            };
+            
+            let file_path = Path::new(&file);
+            if !file_path.exists() {
+                anyhow::bail!("File not found: {}", file);
+            }
+            
+            println!("📥 Importing tasks from {} (format: {})...", file_path.display(), format.to_lowercase());
+            
+            if preview {
+                // Read and display what would be imported
+                let content = std::fs::read_to_string(file_path)?;
+                println!("\n{} Preview mode - no changes will be made", "👁️".blue());
+                println!("{}", "─".repeat(50));
+                
+                match format {
+                    ImportFormat::Json => {
+                        let tasks: Vec<serde_json::Value> = serde_json::from_str(&content)?;
+                        println!("Found {} task(s) to import:", tasks.len());
+                        for (i, task) in tasks.iter().enumerate() {
+                            if let Some(title) = task.get("title").and_then(|v| v.as_str()) {
+                                println!("  {}. {}", i + 1, title);
+                            }
+                        }
+                    }
+                    ImportFormat::Yaml => {
+                        let tasks: Vec<serde_yaml::Value> = serde_yaml::from_str(&content)?;
+                        println!("Found {} task(s) to import:", tasks.len());
+                        for (i, task) in tasks.iter().enumerate() {
+                            if let Some(title) = task.get("title").and_then(|v| v.as_str()) {
+                                println!("  {}. {}", i + 1, title);
+                            }
+                        }
+                    }
+                    ImportFormat::Markdown => {
+                        let lines: Vec<_> = content.lines()
+                            .filter(|line| line.trim().starts_with("## Task:"))
+                            .collect();
+                        println!("Found {} task(s) to import:", lines.len());
+                        for (i, line) in lines.iter().enumerate() {
+                            if let Some(title) = line.strip_prefix("## Task:") {
+                                let title = title.trim().split_whitespace()
+                                    .take_while(|w| !w.starts_with('[') && !w.starts_with('#'))
+                                    .collect::<Vec<_>>()
+                                    .join(" ");
+                                println!("  {}. {}", i + 1, title);
+                            }
+                        }
+                    }
+                }
+                
+                println!("\n{} Run without --preview to import these tasks", "ℹ️".blue());
+            } else {
+                let mut importer = TaskImporter::new(storage);
+                match importer.import_from_file(file_path, format, duplicate_handling) {
+                    Ok(result) => {
+                        println!("\n{} {}", "✅".green(), result.summary());
+                    }
+                    Err(e) => {
+                        eprintln!("{} Failed to import tasks: {}", "❌".red(), e);
+                        return Err(e);
+                    }
+                }
+            }
+        }
+        
+        Commands::Task { command } => {
+            match command {
+                TaskCommands::Advice { id, detailed, ask_claude, interactive, history } => {
+                    let task = storage.load_task(id)?;
+                    let tasks_dir = get_tasks_dir()?;
+                    
+                    let actions = if ask_claude {
+                        // Use Claude integration for more intelligent advice
+                        let all_tasks = storage.list_all_tasks()?;
+                        
+                        println!("🤖 Analyzing task with Claude AI...");
+                        match crate::claude_integration::get_task_advice(&task, &all_tasks) {
+                            Ok(claude_advice) => {
+                                advice::display_claude_advice(&claude_advice, &task)
+                            }
+                            Err(e) => {
+                                eprintln!("{} Failed to get Claude advice: {}", "⚠️".yellow(), e);
+                                println!("Falling back to local analysis...\n");
+                                
+                                // Fall back to local analysis
+                                let mut advisor = advice::TaskAdvisor::new(task.clone(), &storage, tasks_dir)?;
+                                let task_advice = advisor.analyze();
+                                let suggested_actions = advice::display_advice(&task_advice, &task, detailed);
+                                // Convert to tuple format
+                                suggested_actions.into_iter()
+                                    .map(|a| (a.command.clone(), a.description.clone(), Some(a.command)))
+                                    .collect()
+                            }
+                        }
+                    } else {
+                        // Use local analysis
+                        let mut advisor = advice::TaskAdvisor::new(task.clone(), &storage, tasks_dir)?;
+                        let task_advice = advisor.analyze();
+                        let suggested_actions = advice::display_advice(&task_advice, &task, detailed);
+                        // Convert to tuple format
+                        suggested_actions.into_iter()
+                            .map(|a| (a.command.clone(), a.description.clone(), Some(a.command)))
+                            .collect()
+                    };
+                    
+                    // Handle interactive mode
+                    if interactive {
+                        interactive::execute_action_interactive(actions)?;
+                    } else if history {
+                        // Only append to history if explicitly requested
+                        interactive::append_to_bash_history(&actions)?;
+                    }
+                }
+            }
+        }
+        
+        Commands::Focus { prd, preview, ai } => {
+            let mut analyzer = focus::FocusAnalyzer::new(storage);
+            
+            // Load PRD if provided
+            if let Some(prd_path) = prd {
+                match analyzer.load_prd(&std::path::PathBuf::from(&prd_path)) {
+                    Ok(_) => println!("📄 Loaded PRD from: {}", prd_path),
+                    Err(e) => {
+                        eprintln!("{} Failed to load PRD: {}", "⚠️".yellow(), e);
+                        // Continue without PRD
+                    }
+                }
+            }
+            
+            println!("🎯 Analyzing task value and focus areas...");
+            
+            match analyzer.analyze_all_tasks() {
+                Ok(report) => {
+                    focus::display_focus_report(&report);
+                    
+                    if !preview && !report.reprioritization_suggestions.is_empty() {
+                        println!("\n{}", "Would you like to apply the suggested priority changes?".bold());
+                        print!("(y/n): ");
+                        io::stdout().flush()?;
+                        
+                        let mut input = String::new();
+                        io::stdin().read_line(&mut input)?;
+                        
+                        if input.trim().to_lowercase() == "y" {
+                            for suggestion in &report.reprioritization_suggestions {
+                                if let Ok(mut task) = storage.load_task(suggestion.task_id) {
+                                    task.priority = suggestion.suggested_priority.clone();
+                                    storage.save_task(&task)?;
+                                    println!("{} Updated task #{} priority", "✅".green(), suggestion.task_id);
+                                }
+                            }
+                        } else {
+                            println!("{} Priority changes not applied.", "ℹ️".blue());
+                        }
+                    }
+                }
+                Err(e) => {
+                    eprintln!("{} Failed to analyze tasks: {}", "❌".red(), e);
                 }
             }
         }

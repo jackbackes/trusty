@@ -1,0 +1,29 @@
+- id: 1
+  title: Setup monitoring dashboard
+  description: Create Grafana dashboards for system metrics
+  priority: high
+  status: pending
+  tags:
+    - monitoring
+    - observability
+  dependencies: []
+
+- id: 2
+  title: Configure alerts
+  description: Set up PagerDuty alerts for critical issues
+  priority: high
+  status: pending
+  tags:
+    - monitoring
+    - oncall
+  dependencies: [1]
+
+- id: 3
+  title: Document runbooks
+  description: Write operational runbooks for common issues
+  priority: medium
+  status: pending
+  tags:
+    - documentation
+    - operations
+  dependencies: []
